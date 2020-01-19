@@ -1,44 +1,45 @@
+.tic-tac-toe
+  - for (var turn = 1; turn <= 9; turn++)
+    - for (var row = 1; row <= 3; row++)
+      - for (var column = 1; column <= 3; column++)
+        - var player = "1"
+        - var positionHorizontal = ""
+        - var positionVertical = ""
+        - var positionDiagonal = ""
+        
+        if( turn % 2 == 0 )
+          - var player = "2"
+          
+        if( column == 1 )
+          - var positionHorizontal = " left first-column"
+        else if( column == 2 )
+          - var positionHorizontal = " middle second-column"
+        else if( column == 3 )
+          - var positionHorizontal = " right third-column"
+         
+        if( row == 1 )
+          - var positionVertical = " top first-row"
+        else if( row == 2 )
+          - var positionVertical = " center second-row"
+        else if( row == 3 )
+          - var positionVertical = " bottom third-row"
+        
+        if( row == 1 && column == 1 )
+          - var positionDiagonal = " first-diagonal"
+        else if( row == 1 && column == 3 )
+          - var positionDiagonal = " second-diagonal"
+        else if( row == 2 && column == 2 )
+          - var positionDiagonal = " first-diagonal second-diagonal"
+        else if( row == 3 && column == 1 )
+          - var positionDiagonal = " second-diagonal"
+        else if( row == 3 && column == 3 )
+          - var positionDiagonal = " first-diagonal"
+        
+        input(id="block" + turn + "-" + row + "-" + column type="radio" class="player-" + player + positionHorizontal + positionVertical + positionDiagonal + " turn-" + turn)
+        label(for="block" + turn + "-" + row + "-" + column class="turn-" + turn)
 
-<head>
-  <link rel="stylesheet" type="text/css" href="hiddensite.css">
-</head>
-
-
-<div class="option-nav">
-	<div id="player-nav">
-		Player: <span id="player"></span>
-	</div>
-	<div id="option" class="btn">
-		<i class="fa fa-cog" aria-hidden="true"></i>
-		<span class="tooltiptext">OPTION</span>
-	</div>
-	<div id="undo-btn" class="btn">
-		<i class="fa fa-undo" aria-hidden="true"></i>
-		<span class="tooltiptext">UNDO</span>
-	</div>
-</div>
-<div id="board">
-	<div id="result" class="hide"></div>
-	<div id="pawn-promotion-option" class="hide">
-		 <span id="queen" class="option"></span>
-		 <span id="rook" class="option"></span>
-		 <span id="knight" class="option"></span>
-		 <span id="bishop" class="option"></span>
-	</div>
-	<div id="option-menu" class="hide">
-		 <div id="back-btn" class="button">BACK</div>
-		 <div id="theme-menu">
-			 THEME: <span id="theme-option" class="button"></span>
-		 </div>
-		 <div id="color-menu">
-			 COLOR: <span id="color-option" class="button"></span>
-		 </div>
-		 <div id="restart-btn" class="button">NEW GAME</div>
-	</div>
-	<div id="game" ng-app="myApp" ng-controller="GameController">
-		 <div class="row" ng-repeat="y in widths">
-			  <div class="box" ng-repeat="x in widths" ng-attr-id="{{'box-' + x + '-' + y}}" piece="">
-			  </div>
-		 </div>
-	</div>
-</div>
+  .end
+    h3
+    a(href="") Restart
+    
+h5 Note: use the Full Page view for the best experience.
