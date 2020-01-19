@@ -1,63 +1,44 @@
+
 <head>
   <link rel="stylesheet" type="text/css" href="hiddensite.css">
-    
-    <script src="hiddensite.js"></script>
-
-
 </head>
 
-<div class="container">
-  <div class="heading">
-    <h1 class="title">2048</h1>
-    <div class="score-container">0</div>
-  </div>
-  <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
 
-  <div class="game-container">
-    <div class="game-message">
-      <p></p>
-      <div class="lower">
-        <a class="retry-button">Try again</a>
-      </div>
-    </div>
-
-    <div class="grid-container">
-      <div class="grid-row">
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-      </div>
-    </div>
-
-    <div class="tile-container">
-
-    </div>
-  </div>
-
-  <p class="game-explanation">
-    <strong class="important">How to play:</strong> Use your <strong>arrow keys</strong> to move the tiles. When two tiles with the same number touch, they <strong>merge into one!</strong>
-  </p>
-  <hr>
-  <p>
-  Created by <a href="http://gabrielecirulli.com" target="_blank">Gabriele Cirulli.</a> Based on <a href="https://itunes.apple.com/us/app/1024!/id823499224" target="_blank">1024 by Veewo Studio</a> and conceptually similar to <a href="http://asherv.com/threes/" target="_blank">Threes by Asher Vollmer.</a>
-  </p>
+<div class="option-nav">
+	<div id="player-nav">
+		Player: <span id="player"></span>
+	</div>
+	<div id="option" class="btn">
+		<i class="fa fa-cog" aria-hidden="true"></i>
+		<span class="tooltiptext">OPTION</span>
+	</div>
+	<div id="undo-btn" class="btn">
+		<i class="fa fa-undo" aria-hidden="true"></i>
+		<span class="tooltiptext">UNDO</span>
+	</div>
+</div>
+<div id="board">
+	<div id="result" class="hide"></div>
+	<div id="pawn-promotion-option" class="hide">
+		 <span id="queen" class="option"></span>
+		 <span id="rook" class="option"></span>
+		 <span id="knight" class="option"></span>
+		 <span id="bishop" class="option"></span>
+	</div>
+	<div id="option-menu" class="hide">
+		 <div id="back-btn" class="button">BACK</div>
+		 <div id="theme-menu">
+			 THEME: <span id="theme-option" class="button"></span>
+		 </div>
+		 <div id="color-menu">
+			 COLOR: <span id="color-option" class="button"></span>
+		 </div>
+		 <div id="restart-btn" class="button">NEW GAME</div>
+	</div>
+	<div id="game" ng-app="myApp" ng-controller="GameController">
+		 <div class="row" ng-repeat="y in widths">
+			  <div class="box" ng-repeat="x in widths" ng-attr-id="{{'box-' + x + '-' + y}}" piece="">
+			  </div>
+		 </div>
+	</div>
 </div>

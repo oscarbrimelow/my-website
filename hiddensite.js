@@ -1,540 +1,662 @@
-document.addEventListener("DOMContentLoaded", function () {
-  // Wait till the browser is ready to render the game (avoids glitches)
-  window.requestAnimationFrame(function () {
-    var manager = new GameManager(4, KeyboardInputManager, HTMLActuator);
-  });
+angular.module('myApp', []).controller('GameController', ['$scope', function($scope) {
+	
+	//Draw the board game
+    $scope.size = 8;
+    $scope.widths = [];
+
+    //Draw board
+    for (var i = 0; i < $scope.size; i++) { 
+        $scope.widths.push(i);
+    }
+	
+}]);
+
+$(document).ready(function() {   
+    var themes = [
+        {
+            name: 'CLASSIC',
+            boardBorderColor: '#666',
+            lightBoxColor: '#fff',
+            darkBoxColor: '#ccc',
+            optionColor: '#000',
+            optionHoverColor: '#999'
+        },
+        {   
+            name: 'WOOD',
+            boardBorderColor: '#803E04',
+            lightBoxColor: '#FFCE9E',
+            darkBoxColor: '#D18B47',
+            optionColor: '#803E04',
+            optionHoverColor: '#311B0B'
+        },
+        {
+            name: 'OCEAN',
+            boardBorderColor: '#023850',
+            lightBoxColor: '#fff',
+            darkBoxColor: '#0A85AE',
+            optionColor: '#023850',
+            optionHoverColor: '#3385ff'
+        },
+        {
+            name: 'FOREST',
+            boardBorderColor: '#005900',
+            lightBoxColor: '#CAC782',
+            darkBoxColor: '#008C00',
+            optionColor: '#005900',
+            optionHoverColor: '#0c0'
+        },
+        {
+            name: 'BLOOD',
+            boardBorderColor: '#f3f3f3',
+            lightBoxColor: '#f3f3f3',
+            darkBoxColor: '#f00',
+            optionColor: '#f00',
+            optionHoverColor: '#f99'
+        }
+    ];
+    
+    var colors = [
+        {
+            name: 'BLACK',
+            color: '#000'
+        }, 
+        {
+            name: 'GREEN',
+            color: '#030'
+        }, 
+        {
+            name: 'BLUE',
+            color: '#036'
+        }, 
+        {
+            name: 'PINK',
+            color: '#606'
+        }, 
+        {
+            name: 'BROWN',
+            color: '#630'
+        }
+    ];
+    
+    var colorOption = 0;
+    var themeOption = 1;
+    
+    //Change theme
+    $('#theme-option').on('click', function() {
+        themeOption === themes.length - 1 ? themeOption = 0 : themeOption++;
+        
+        setTheme();
+    });
+    
+    //Set up theme
+    var setTheme = function() {
+        var theme = themes[themeOption];
+        
+        $('#theme-option').html(theme.name);
+        
+        $('#board').css('border-color', theme.boardBorderColor);
+        $('.light-box').css('background', theme.lightBoxColor);
+        $('.dark-box').css('background', theme.darkBoxColor);
+        
+        $('.option-nav').css('color', theme.optionColor);
+        
+        //Option button effect
+        $('#option').css('color', theme.optionColor);
+        $('#option').hover(
+            function() {
+                $(this).css('color', theme.optionHoverColor);
+            }, function() {
+                $(this).css('color', theme.optionColor);
+            }
+        );
+        
+        //Undo button effect
+        $('#undo-btn').css('color', theme.optionColor);
+        $('#undo-btn').hover(
+            function() {
+                $(this).css('color', theme.optionHoverColor);
+            }, function() {
+                $(this).css('color', theme.optionColor);
+            }
+        );
+        
+        //Option Menu effect
+        $('#option-menu').css('color', theme.optionColor);
+        $('.button').css('color', theme.optionColor);
+        $('.button').hover(
+            function() {
+                $(this).css('color', theme.optionHoverColor);
+            }, function() {
+                $(this).css('color', theme.optionColor);
+            }
+        );
+    }
+    
+    //Change color
+    $('#color-option').on('click', function() {
+       colorOption === colors.length - 1 ? colorOption = 0 : colorOption++;
+        
+        setColor();
+    });
+    
+    //Set up color for chess pieces
+    var setColor = function() {
+        var color = colors[colorOption];
+        
+        $('#color-option').html(color.name);
+        
+        $('.box').css('color', color['color']);
+        
+        $('#pawn-promotion-option').css('color', color['color']);
+        
+        $('#player').css('color', color['color']);
+    }
+	 
+	 //=====GLOBAL VARIABLES=========//
+
+	//Chess pieces
+	var chessPieces = {
+		 'white': {
+			  'king': '&#9812;',
+			  'queen': '&#9813;',
+			  'rook': '&#9814;',
+			  'bishop': '&#9815;',
+			  'knight': '&#9816;',
+			  'pawn': '&#9817;'
+		 },
+		 'black': {
+			  'king': '&#9818;',
+			  'queen': '&#9819;',
+			  'rook': '&#9820;',
+			  'bishop': '&#9821;',
+			  'knight': '&#9822;',
+			  'pawn': '&#9823;'
+		 }
+	};
+
+	var player = 'black'; //First player
+
+	//Selected chess piece to move
+	var select = {
+		 canMove: false, //Ready to move of not
+		 piece: '',      //Color, type of the piece
+		 box: ''         //Position of the piece
+	}
+
+	//Game's history (pieces + positions)
+	var historyMoves = [];
+
+	//Position and color of pawn promotion
+	var promotion = {};
+
+	//Set up board game
+	$(function() {		 
+		$('#player').html(chessPieces.black.king);
+
+		 //Set up color for boxes, chess pieces
+		 for(var i = 0; i < 8; i++) {
+			  for(var j = 0; j < 8; j++) {
+					var box = $('#box-' + i + '-' + j);
+					if((i + j) % 2 !== 0) {
+						 box.addClass('light-box');
+					} else {
+						 box.addClass('dark-box');
+					}
+					setNewBoard(box, i, j); //Set up all chess pieces
+			  }
+		 }
+		 setColor();
+		 setTheme();
+	});
+
+	//==============CLICK EVENTS==================//
+
+		$(function() {
+			 //Option menu
+			 $('#option').on('click', function() {
+				  if($('#option-menu').hasClass('hide')) {
+						$('#game').css('opacity', '0.3');
+						$('#option-menu').removeClass('hide');
+				  } else {
+						$('#game').css('opacity', '1');
+						$('#option-menu').addClass('hide');
+				  }
+			 });
+
+			 //Back button
+			 //Return to game
+			 $('#back-btn').on('click', function() {
+				  $('#option-menu').addClass('hide');
+				  $('#game').css('opacity', '1');
+			 });
+			
+		 //Undo button 
+		 $('#undo-btn').on('click', function() {
+			  if(historyMoves.length === 0) {
+					return;
+			  }
+
+			  var move = historyMoves.pop();
+
+			  var previous = move.previous;        
+			  setPiece($('#' + previous.box), previous.piece.split('-')[0], previous.piece.split('-')[1]);
+
+			  var current = move.current;
+			  if(current.piece === '') {
+					var currentBox = $('#' + current.box);
+					currentBox.html('');
+					currentBox.attr('piece', '');
+					currentBox.removeClass('placed');
+			  } else {
+					setPiece($('#' + current.box), current.piece.split('-')[0], current.piece.split('-')[1]);
+			  }
+
+			  //Reset all changes
+			  $('.box').removeClass('selected');
+			  $('.box').removeClass('suggest');
+
+			  switchPlayer();
+
+			  select = { canMove: false, piece: '', box: '' };
+		 });
+
+		 //Pawn promotion event
+		 $('#pawn-promotion-option .option').on('click', function() {
+
+			  var newType = $(this).attr('id');
+			  promotion.box.html(chessPieces[promotion.color][newType]);
+			  promotion.box.addClass('placed');
+			  promotion.box.attr('piece', promotion.color + '-' + newType);
+
+			  $('#pawn-promotion-option').addClass('hide');
+			  $('#game').css('opacity', '1');
+
+			  promotion = {};
+		 });
+
+		 //Reset game
+		 $('#restart-btn').on('click', function() {
+			  resetGame(); 
+		 });
+
+		 //Restart when game over
+		 $('#result').on('click', function() {
+			  resetGame();
+		 });
+
+		 //Box click event
+		 $('.box').on('click', function() {
+			  if($(this).hasClass('selected')) { //Undo to select new box
+					$(this).removeClass('selected');
+
+					$('.box').removeClass('suggest');
+					select = { canMove: false, piece: '', box: '' };
+					return;
+			  }
+
+			  //Select new box
+			  if(!select.canMove) {
+					//Check the right color to play
+					if($(this).attr('piece').indexOf(player) >= 0) {
+						 //Select a piece to move
+						 selectPiece($(this));
+					}
+			  }
+
+			  //Set up new destination for selected box
+			  else if(select.canMove) { 
+					var selectedPieceInfo = select.piece.split('-');
+					var color = selectedPieceInfo[0];
+					var type = selectedPieceInfo[1];
+
+					//Select new piece to move if 2 colors are the same
+					if($(this).attr('piece').indexOf(color) >= 0) {
+						 $('#' + select.box).removeClass('selected');
+						 $('.box').removeClass('suggest');
+						 //Select a piece to move
+						 selectPiece($(this));
+						 return;
+					}
+
+					//Can move if it is valid
+					if($(this).hasClass('suggest')) { 
+
+						 //Save move in history
+						 var move = {
+							  previous: {},
+							  current: {}
+						 }
+
+						 move.previous.piece = select.piece;
+						 move.previous.box = select.box;
+
+						 move.current.piece = $(this).attr('piece');
+						 move.current.box = $(this).attr('id');
+
+						 historyMoves.push( move );
+
+						 //Move selected piece successfully
+						 setPiece($(this), color, type);
+
+						 //Delete moved box
+						 deleteBox($('#' + select.box));
+
+						 $('.box').removeClass('suggest');
+
+						 select = { canMove: false, piece: '', box: '' };
+
+						 //Switch player
+						 switchPlayer();
+					}
+			  }
+		 });
+	});
+
+	//Get piece and position of the selected piece
+	var selectPiece = function(box) {
+		 box.addClass('selected');
+		 select.box = box.attr('id');
+		 select.piece = box.attr('piece');
+		 select.canMove = true;
+
+		 suggestNextMoves(getNextMoves(select.piece, select.box));
+	}
+
+	//CALCULATE VALID MOVES=======//
+
+	//Returns possible moves of the selected piece
+	var getNextMoves = function(selectedPiece, selectedBox) {
+		 var selectedPieceInfo = selectedPiece.split('-');
+		 var color = selectedPieceInfo[0];
+		 var type = selectedPieceInfo[1];
+
+		 var id = selectedBox.split('-');
+		 var i = parseInt(id[1]);
+		 var j = parseInt(id[2]);
+
+		 var nextMoves = [];
+
+		 switch(type) {
+			  case 'pawn':
+					if(color === 'black') {
+						 var moves = [
+							  [0, 1], [0, 2], [1, 1], [-1, 1]
+						 ];
+					} else {
+						 var moves = [
+							  [0, -1], [0, -2], [1, -1], [-1, -1]
+						 ];
+					}
+					nextMoves = getPawnMoves(i, j, color, moves);
+					break;
+			  case 'rook':
+					var moves = [
+						 [0, 1], [0, -1], [1, 0], [-1, 0]
+					];
+					nextMoves = getQueenMoves(i, j, color, moves);
+					break;
+			  case 'knight':
+					var moves = [
+						 [-1, -2], [-2, -1], [1, -2], [-2, 1],
+						 [2, -1], [-1, 2], [2, 1], [1, 2]
+					];
+					nextMoves = getKnightMoves(i, j, color, moves);
+					break;
+			  case 'bishop':
+					var moves = [
+						 [1, 1], [1, -1], [-1, 1], [-1, -1]
+					];
+					nextMoves = getQueenMoves(i, j, color, moves);
+					break;
+			  case 'queen':
+					var moves1 = [
+						 [1, 1], [1, -1], [-1, 1], [-1, -1]
+					];
+					var moves2 = [
+						 [0, 1], [0, -1], [1, 0], [-1, 0]
+					];
+					nextMoves = getQueenMoves(i, j, color, moves1)
+									.concat(getQueenMoves(i, j, color, moves2));
+					break;
+			  case 'king':
+					var moves = [
+						 [1, 1], [1, -1], [-1, 1], [-1, -1],
+						 [0, 1], [0, -1], [1, 0], [-1, 0]
+					];
+					nextMoves = getKnightMoves(i, j, color, moves);
+					break;
+			  default: 
+					break;
+		 }
+		 return nextMoves;
+	}
+
+	//Calculate next moves for pawn pieces
+	var getPawnMoves = function(i, j, color, moves) {
+		 var nextMoves = [];
+		 for(var index = 0; index < moves.length; index++) {
+			  var tI = i + moves[index][0];
+			  var tJ = j + moves[index][1];
+			  if( !outOfBounds(tI, tJ) ) {
+					var box = $('#box-' + tI + '-' + tJ);
+
+					if(index === 0) { //First line
+						 if(!box.hasClass('placed')) {
+							  nextMoves.push([tI, tJ]);
+						 } else {
+							  index++;
+						 }
+					} else if(index === 1) { //First line
+						 if( ((color === 'black' && j === 1) ||
+								 (color === 'white' && j === 6)) &&
+							  !box.hasClass('placed')) {
+							  nextMoves.push([tI, tJ]);
+						 }
+					} else if(index > 1) { //Other lines
+						 if(box.attr('piece') !== '' && box.attr('piece').indexOf(color) < 0) {
+							  nextMoves.push([tI, tJ]);
+						 }
+					}
+			  }
+		 }
+		 return nextMoves;
+	}
+
+	//Calculate next move of rook, bishop and queen pieces
+	var getQueenMoves = function(i, j, color, moves) {
+		 var nextMoves = [];
+		 for(var move of moves) {
+			  var tI = i + move[0];
+			  var tJ = j + move[1];
+			  var sugg = true;
+			  while(sugg && !outOfBounds(tI, tJ)) {
+					var box = $('#box-' + tI + '-' + tJ);
+					if(box.hasClass('placed')) {
+						 if(box.attr('piece').indexOf(color) >= 0) {
+							  sugg = false;
+						 } else {
+							  nextMoves.push([tI, tJ]);
+							  sugg = false;
+						 }
+					}
+					if(sugg) {
+						 nextMoves.push([tI, tJ]);
+						 tI += move[0];
+						 tJ += move[1];
+					}
+			  }
+		 }
+		 return nextMoves;
+	}
+
+	//Calculate next moves for knight or king pieces
+	var getKnightMoves = function(i, j, color, moves) {
+		 var nextMoves = [];
+		 for(var move of moves) {
+			  var tI = i + move[0];
+			  var tJ = j + move[1];
+			  if( !outOfBounds(tI, tJ) ) {
+					var box = $('#box-' + tI + '-' + tJ);
+					if(!box.hasClass('placed') || box.attr('piece').indexOf(color) < 0) {
+						 nextMoves.push([tI, tJ]);
+					}
+			  }
+		 }
+		 return nextMoves;
+	}
+
+	//Check if position i, j is in the board game
+	var outOfBounds = function(i, j) {
+		 return ( i < 0 || i >= 8 || j < 0 || j >= 8 );
+	}
+
+	//Show possible moves by add suggestion to boxes
+	var suggestNextMoves = function(nextMoves) {
+		 for(var move of nextMoves) {
+			  var box = $('#box-' + move[0] + '-' + move[1]);
+			  box.addClass('suggest');
+		 }
+	}
+
+	//=============================================//
+
+	//Set up piece for clicked box
+	var setPiece = function(box, color, type) {
+
+		 //Check end game (if king is defeated)
+		 if(box.attr('piece').indexOf('king') >= 0) {
+			  showWinner(player);
+
+			  box.html(chessPieces[color][type]);
+			  box.addClass('placed');
+			  box.attr('piece', color + '-' + type);
+
+			  return;
+		 }
+
+		 //Check if pawn reached the last line
+		 var j = parseInt(box.attr('id').charAt(6));
+		 if(type === 'pawn') {
+			  if( (player === 'black' && j === 7) ||
+					(player === 'white' && j === 0)) {
+					$('#game').css('opacity', '0.5');
+
+					var option = $('#pawn-promotion-option');
+					option.removeClass('hide');
+					option.find('#queen').html(chessPieces[player].queen);
+					option.find('#rook').html(chessPieces[player].rook);
+					option.find('#knight').html(chessPieces[player].knight);
+					option.find('#bishop').html(chessPieces[player].bishop);
+
+					promotion = { box: box, color: color };
+
+					return;
+			  }
+		 }
+
+		 box.html(chessPieces[color][type]);
+		 box.addClass('placed');
+		 box.attr('piece', color + '-' + type);
+	}
+
+	//Delete selected element
+	var deleteBox = function(box) {
+		 box.removeClass('placed');
+		 box.removeClass('selected');
+		 box.removeClass('suggest');
+		 box.html('');
+		 box.attr('piece', '');
+	}
+
+	//Default board state
+	var setNewBoard = function(box, i, j) {
+		 if(j === 7) {
+			  if(i === 0 || i === 7) {
+					setPiece(box, 'white', 'rook');
+			  } else if(i === 1 || i === 6) {
+					setPiece(box, 'white', 'knight');
+			  } else if(i === 2 || i === 5) {
+					setPiece(box, 'white', 'bishop');
+			  } else if(i === 3) {
+					setPiece(box, 'white', 'queen');
+			  } else if(i === 4) {
+					setPiece(box, 'white', 'king');
+			  }
+		 } else if(j === 6) {
+			  setPiece(box, 'white', 'pawn');
+		 } else if(j === 1) {
+			  setPiece(box, 'black', 'pawn');
+		 } else if(j === 0) {
+			  if(i === 0 || i === 7) {
+					setPiece(box, 'black', 'rook');
+			  } else if(i === 1 || i === 6) {
+					setPiece(box, 'black', 'knight');
+			  } else if(i === 2 || i === 5) {
+					setPiece(box, 'black', 'bishop');
+			  } else if(i === 3) {
+					setPiece(box, 'black', 'queen');
+			  } else if(i === 4) {
+					setPiece(box, 'black', 'king');
+			  }
+		 }
+	}
+
+	//Switch player
+	var switchPlayer = function() {
+		 if(player === 'black') {
+			  $('#player').html(chessPieces.white.king);
+			  player = 'white';
+		 } else {
+			  $('#player').html(chessPieces.black.king);
+			  player = 'black';
+		 }
+	}
+
+	//Restart game
+	var resetGame = function() {
+		 deleteBox($('.box'));
+		 $('#player').html(chessPieces.black.king);
+		 $('#result').addClass('hide');
+		 $('#option-menu').addClass('hide');
+		 $('#game').css('opacity', '1');
+
+		 //Set up color for boxes, chess pieces
+		 for(var i = 0; i < 8; i++) {
+			  for(var j = 0; j < 8; j++) {
+					var box = $('#box-' + i + '-' + j);
+					setNewBoard(box, i, j);
+			  }
+		 }
+
+		 //Set global variables to default
+		 player = 'black';
+		 select = {
+			  canMove: false,
+			  piece: '',
+			  box: ''
+		 };
+
+		 historyMoves = [];
+		 promotion = {};
+	}
+
+	//Announce the winner
+	var showWinner = function(winner) {
+
+		 historyMoves = [];
+		 promotion = {};
+
+		 setTimeout(function() {
+			  if(winner === 'DRAW') { //Game is draw
+					$('#result').css('color', '#000');
+					$('#result').html(winner);
+			  } else { //There is a winner
+					$('#result').css('color', winner + '');
+					$('#result').html(chessPieces[winner].king + ' wins!');
+			  }
+			  $('#result').removeClass('hide');
+			  $('#game').css('opacity', '0.5');
+		 }, 1000);
+	}
+    
 });
-
-
-function GameManager(size, InputManager, Actuator) {
-  this.size         = size; // Size of the grid
-  this.inputManager = new InputManager;
-  this.actuator     = new Actuator;
-
-  this.startTiles   = 2;
-
-  this.inputManager.on("move", this.move.bind(this));
-  this.inputManager.on("restart", this.restart.bind(this));
-
-  this.setup();
-}
-
-// Restart the game
-GameManager.prototype.restart = function () {
-  this.actuator.restart();
-  this.setup();
-};
-
-// Set up the game
-GameManager.prototype.setup = function () {
-  this.grid         = new Grid(this.size);
-
-  this.score        = 0;
-  this.over         = false;
-  this.won          = false;
-
-  // Add the initial tiles
-  this.addStartTiles();
-
-  // Update the actuator
-  this.actuate();
-};
-
-// Set up the initial tiles to start the game with
-GameManager.prototype.addStartTiles = function () {
-  for (var i = 0; i < this.startTiles; i++) {
-    this.addRandomTile();
-  }
-};
-
-// Adds a tile in a random position
-GameManager.prototype.addRandomTile = function () {
-  if (this.grid.cellsAvailable()) {
-    var value = Math.random() < 0.9 ? 2 : 4;
-    var tile = new Tile(this.grid.randomAvailableCell(), value);
-
-    this.grid.insertTile(tile);
-  }
-};
-
-// Sends the updated grid to the actuator
-GameManager.prototype.actuate = function () {
-  this.actuator.actuate(this.grid, {
-    score: this.score,
-    over:  this.over,
-    won:   this.won
-  });
-};
-
-// Save all tile positions and remove merger info
-GameManager.prototype.prepareTiles = function () {
-  this.grid.eachCell(function (x, y, tile) {
-    if (tile) {
-      tile.mergedFrom = null;
-      tile.savePosition();
-    }
-  });
-};
-
-// Move a tile and its representation
-GameManager.prototype.moveTile = function (tile, cell) {
-  this.grid.cells[tile.x][tile.y] = null;
-  this.grid.cells[cell.x][cell.y] = tile;
-  tile.updatePosition(cell);
-};
-
-// Move tiles on the grid in the specified direction
-GameManager.prototype.move = function (direction) {
-  // 0: up, 1: right, 2:down, 3: left
-  var self = this;
-
-  if (this.over || this.won) return; // Don't do anything if the game's over
-
-  var cell, tile;
-
-  var vector     = this.getVector(direction);
-  var traversals = this.buildTraversals(vector);
-  var moved      = false;
-
-  // Save the current tile positions and remove merger information
-  this.prepareTiles();
-
-  // Traverse the grid in the right direction and move tiles
-  traversals.x.forEach(function (x) {
-    traversals.y.forEach(function (y) {
-      cell = { x: x, y: y };
-      tile = self.grid.cellContent(cell);
-
-      if (tile) {
-        var positions = self.findFarthestPosition(cell, vector);
-        var next      = self.grid.cellContent(positions.next);
-
-        // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
-          merged.mergedFrom = [tile, next];
-
-          self.grid.insertTile(merged);
-          self.grid.removeTile(tile);
-
-          // Converge the two tiles' positions
-          tile.updatePosition(positions.next);
-
-          // Update the score
-          self.score += merged.value;
-
-          // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
-        } else {
-          self.moveTile(tile, positions.farthest);
-        }
-
-        if (!self.positionsEqual(cell, tile)) {
-          moved = true; // The tile moved from its original cell!
-        }
-      }
-    });
-  });
-
-  if (moved) {
-    this.addRandomTile();
-
-    if (!this.movesAvailable()) {
-      this.over = true; // Game over!
-    }
-
-    this.actuate();
-  }
-};
-
-// Get the vector representing the chosen direction
-GameManager.prototype.getVector = function (direction) {
-  // Vectors representing tile movement
-  var map = {
-    0: { x: 0,  y: -1 }, // up
-    1: { x: 1,  y: 0 },  // right
-    2: { x: 0,  y: 1 },  // down
-    3: { x: -1, y: 0 }   // left
-  };
-
-  return map[direction];
-};
-
-// Build a list of positions to traverse in the right order
-GameManager.prototype.buildTraversals = function (vector) {
-  var traversals = { x: [], y: [] };
-
-  for (var pos = 0; pos < this.size; pos++) {
-    traversals.x.push(pos);
-    traversals.y.push(pos);
-  }
-
-  // Always traverse from the farthest cell in the chosen direction
-  if (vector.x === 1) traversals.x = traversals.x.reverse();
-  if (vector.y === 1) traversals.y = traversals.y.reverse();
-
-  return traversals;
-};
-
-GameManager.prototype.findFarthestPosition = function (cell, vector) {
-  var previous;
-
-  // Progress towards the vector direction until an obstacle is found
-  do {
-    previous = cell;
-    cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
-  } while (this.grid.withinBounds(cell) &&
-           this.grid.cellAvailable(cell));
-
-  return {
-    farthest: previous,
-    next: cell // Used to check if a merge is required
-  };
-};
-
-GameManager.prototype.movesAvailable = function () {
-  return this.grid.cellsAvailable() || this.tileMatchesAvailable();
-};
-
-// Check for available matches between tiles (more expensive check)
-GameManager.prototype.tileMatchesAvailable = function () {
-  var self = this;
-
-  var tile;
-
-  for (var x = 0; x < this.size; x++) {
-    for (var y = 0; y < this.size; y++) {
-      tile = this.grid.cellContent({ x: x, y: y });
-
-      if (tile) {
-        for (var direction = 0; direction < 4; direction++) {
-          var vector = self.getVector(direction);
-          var cell   = { x: x + vector.x, y: y + vector.y };
-
-          var other  = self.grid.cellContent(cell);
-          if (other) {
-          }
-
-          if (other && other.value === tile.value) {
-            return true; // These two tiles can be merged
-          }
-        }
-      }
-    }
-  }
-
-  return false;
-};
-
-GameManager.prototype.positionsEqual = function (first, second) {
-  return first.x === second.x && first.y === second.y;
-};
-
-
-
-function Grid(size) {
-  this.size = size;
-
-  this.cells = [];
-
-  this.build();
-}
-
-// Build a grid of the specified size
-Grid.prototype.build = function () {
-  for (var x = 0; x < this.size; x++) {
-    var row = this.cells[x] = [];
-
-    for (var y = 0; y < this.size; y++) {
-      row.push(null);
-    }
-  }
-};
-
-// Find the first available random position
-Grid.prototype.randomAvailableCell = function () {
-  var cells = this.availableCells();
-
-  if (cells.length) {
-    return cells[Math.floor(Math.random() * cells.length)];
-  }
-};
-
-Grid.prototype.availableCells = function () {
-  var cells = [];
-
-  this.eachCell(function (x, y, tile) {
-    if (!tile) {
-      cells.push({ x: x, y: y });
-    }
-  });
-
-  return cells;
-};
-
-// Call callback for every cell
-Grid.prototype.eachCell = function (callback) {
-  for (var x = 0; x < this.size; x++) {
-    for (var y = 0; y < this.size; y++) {
-      callback(x, y, this.cells[x][y]);
-    }
-  }
-};
-
-// Check if there are any cells available
-Grid.prototype.cellsAvailable = function () {
-  return !!this.availableCells().length;
-};
-
-// Check if the specified cell is taken
-Grid.prototype.cellAvailable = function (cell) {
-  return !this.cellOccupied(cell);
-};
-
-Grid.prototype.cellOccupied = function (cell) {
-  return !!this.cellContent(cell);
-};
-
-Grid.prototype.cellContent = function (cell) {
-  if (this.withinBounds(cell)) {
-    return this.cells[cell.x][cell.y];
-  } else {
-    return null;
-  }
-};
-
-// Inserts a tile at its position
-Grid.prototype.insertTile = function (tile) {
-  this.cells[tile.x][tile.y] = tile;
-};
-
-Grid.prototype.removeTile = function (tile) {
-  this.cells[tile.x][tile.y] = null;
-};
-
-Grid.prototype.withinBounds = function (position) {
-  return position.x >= 0 && position.x < this.size &&
-         position.y >= 0 && position.y < this.size;
-};
-
-
-function HTMLActuator() {
-  this.tileContainer    = document.getElementsByClassName("tile-container")[0];
-  this.scoreContainer   = document.getElementsByClassName("score-container")[0];
-  this.messageContainer = document.getElementsByClassName("game-message")[0];
-
-  this.score = 0;
-}
-
-HTMLActuator.prototype.actuate = function (grid, metadata) {
-  var self = this;
-
-  window.requestAnimationFrame(function () {
-    self.clearContainer(self.tileContainer);
-
-    grid.cells.forEach(function (column) {
-      column.forEach(function (cell) {
-        if (cell) {
-          self.addTile(cell);
-        }
-      });
-    });
-
-    self.updateScore(metadata.score);
-
-    if (metadata.over) self.message(false); // You lose
-    if (metadata.won) self.message(true); // You win!
-  });
-};
-
-HTMLActuator.prototype.restart = function () {
-  this.clearMessage();
-};
-
-HTMLActuator.prototype.clearContainer = function (container) {
-  while (container.firstChild) {
-    container.removeChild(container.firstChild);
-  }
-};
-
-HTMLActuator.prototype.addTile = function (tile) {
-  var self = this;
-
-  var element   = document.createElement("div");
-  var position  = tile.previousPosition || { x: tile.x, y: tile.y };
-  positionClass = this.positionClass(position);
-
-  // We can't use classlist because it somehow glitches when replacing classes
-  var classes = ["tile", "tile-" + tile.value, positionClass];
-  this.applyClasses(element, classes);
-
-  element.textContent = tile.value;
-
-  if (tile.previousPosition) {
-    // Make sure that the tile gets rendered in the previous position first
-    window.requestAnimationFrame(function () {
-      classes[2] = self.positionClass({ x: tile.x, y: tile.y });
-      self.applyClasses(element, classes); // Update the position
-    });
-  } else if (tile.mergedFrom) {
-    classes.push("tile-merged");
-    this.applyClasses(element, classes);
-
-    // Render the tiles that merged
-    tile.mergedFrom.forEach(function (merged) {
-      self.addTile(merged);
-    });
-  } else {
-    classes.push("tile-new");
-    this.applyClasses(element, classes);
-  }
-
-  // Put the tile on the board
-  this.tileContainer.appendChild(element);
-};
-
-HTMLActuator.prototype.applyClasses = function (element, classes) {
-  element.setAttribute("class", classes.join(" "));
-};
-
-HTMLActuator.prototype.normalizePosition = function (position) {
-  return { x: position.x + 1, y: position.y + 1 };
-};
-
-HTMLActuator.prototype.positionClass = function (position) {
-  position = this.normalizePosition(position);
-  return "tile-position-" + position.x + "-" + position.y;
-};
-
-HTMLActuator.prototype.updateScore = function (score) {
-  this.clearContainer(this.scoreContainer);
-
-  var difference = score - this.score;
-  this.score = score;
-
-  this.scoreContainer.textContent = this.score;
-
-  if (difference > 0) {
-    var addition = document.createElement("div");
-    addition.classList.add("score-addition");
-    addition.textContent = "+" + difference;
-
-    this.scoreContainer.appendChild(addition);
-  }
-};
-
-HTMLActuator.prototype.message = function (won) {
-  var type    = won ? "game-won" : "game-over";
-  var message = won ? "You win!" : "Game over!"
-
-  // if (ga) ga("send", "event", "game", "end", type, this.score);
-
-  this.messageContainer.classList.add(type);
-  this.messageContainer.getElementsByTagName("p")[0].textContent = message;
-};
-
-HTMLActuator.prototype.clearMessage = function () {
-  this.messageContainer.classList.remove("game-won", "game-over");
-};
-
-
-
-function KeyboardInputManager() {
-  this.events = {};
-
-  this.listen();
-}
-
-KeyboardInputManager.prototype.on = function (event, callback) {
-  if (!this.events[event]) {
-    this.events[event] = [];
-  }
-  this.events[event].push(callback);
-};
-
-KeyboardInputManager.prototype.emit = function (event, data) {
-  var callbacks = this.events[event];
-  if (callbacks) {
-    callbacks.forEach(function (callback) {
-      callback(data);
-    });
-  }
-};
-
-KeyboardInputManager.prototype.listen = function () {
-  var self = this;
-
-  var map = {
-    38: 0, // Up
-    39: 1, // Right
-    40: 2, // Down
-    37: 3, // Left
-    75: 0, // vim keybindings
-    76: 1,
-    74: 2,
-    72: 3
-  };
-
-  document.addEventListener("keydown", function (event) {
-    var modifiers = event.altKey || event.ctrlKey || event.metaKey ||
-                    event.shiftKey;
-    var mapped    = map[event.which];
-
-    if (!modifiers) {
-      if (mapped !== undefined) {
-        event.preventDefault();
-        self.emit("move", mapped);
-      }
-
-      if (event.which === 32) self.restart.bind(self)(event);
-    }
-  });
-
-  var retry = document.getElementsByClassName("retry-button")[0];
-  retry.addEventListener("click", this.restart.bind(this));
-
-  // Listen to swipe events
-  var gestures = [Hammer.DIRECTION_UP, Hammer.DIRECTION_RIGHT,
-                  Hammer.DIRECTION_DOWN, Hammer.DIRECTION_LEFT];
-
-  var gameContainer = document.getElementsByClassName("game-container")[0];
-  var handler       = Hammer(gameContainer, {
-    drag_block_horizontal: true,
-    drag_block_vertical: true
-  });
-  
-  handler.on("swipe", function (event) {
-    event.gesture.preventDefault();
-    mapped = gestures.indexOf(event.gesture.direction);
-
-    if (mapped !== -1) self.emit("move", mapped);
-  });
-};
-
-KeyboardInputManager.prototype.restart = function (event) {
-  event.preventDefault();
-  this.emit("restart");
-};
-
-
-
-
-
-function Tile(position, value) {
-  this.x                = position.x;
-  this.y                = position.y;
-  this.value            = value || 2;
-
-  this.previousPosition = null;
-  this.mergedFrom       = null; // Tracks tiles that merged together
-}
-
-Tile.prototype.savePosition = function () {
-  this.previousPosition = { x: this.x, y: this.y };
-};
-
-Tile.prototype.updatePosition = function (position) {
-  this.x = position.x;
-  this.y = position.y;
-};
-
